@@ -1,4 +1,4 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAppSelector } from "@/store/hooks"
 import { RootState } from "@/store"
 import { Button } from "@/components/ui/button"
@@ -33,11 +33,11 @@ export function DriverSheet() {
 
     return (
         <Sheet open={!!selectedDriverId} onOpenChange={handleClose}>
-            <SheetContent className="w-[400px] sm:w-[540px] px-4">
+            <SheetContent className="w-[400px] sm:w-[540px] px-4 flex flex-col">
                 <SheetHeader className="px-0">
                     <SheetTitle className="text-2xl font-bold">{selectedDriverData.name}</SheetTitle>
                 </SheetHeader>
-                <div className="mt-6 space-y-6">
+                <div className="mt-6 space-y-6 flex-1">
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</span>
@@ -63,27 +63,30 @@ export function DriverSheet() {
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</span>
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Location</span>
                             <span className="text-sm text-gray-900 dark:text-gray-100">
                                 {selectedDriverData.latitude.toFixed(6)}, {selectedDriverData.longitude.toFixed(6)}
                             </span>
                         </div>
                     </div>
-
-                    <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
-                        <div className="flex flex-col gap-4">
-                            <div className="space-y-4">
-                                <Button
-                                    variant="default"
-                                    className="w-full"
-                                    onClick={handleReassign}
-                                >
-                                    Reassign Delivery
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
+                <SheetFooter className="flex flex-row gap-4 w-full">
+                    <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={handleClose}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="default"
+                        className="flex-1"
+                        onClick={handleReassign}
+                        disabled={driver?.status === 'delivering'}
+                    >
+                        Reassign Delivery
+                    </Button>
+                </SheetFooter>
             </SheetContent>
         </Sheet>
     )

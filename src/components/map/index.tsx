@@ -15,6 +15,7 @@ interface MapProps {
   routes?: Route[]
   style?: React.CSSProperties
   onLoad?: (map: mapboxgl.Map) => void
+  onReset?: () => void
 }
 
 const Map: React.FC<MapProps> = memo(({
@@ -23,7 +24,8 @@ const Map: React.FC<MapProps> = memo(({
   markers = [],
   routes = [],
   style,
-  onLoad
+  onLoad,
+  onReset
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
@@ -47,6 +49,7 @@ const Map: React.FC<MapProps> = memo(({
     mapRef.current.on('style.load', () => {
       console.log('Map style loaded')
       isStyleLoaded.current = true
+      onReset?.()
       onLoad?.(mapRef.current!)
     })
 

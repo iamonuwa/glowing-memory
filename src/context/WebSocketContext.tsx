@@ -25,6 +25,7 @@ interface Driver {
   status: DriverUpdate['status']
   eta: number
   lastUpdated: number
+  routeHistory: [number, number][]
 }
 
 interface WebSocketContextType {

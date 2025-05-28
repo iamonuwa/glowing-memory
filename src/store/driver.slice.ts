@@ -1,4 +1,4 @@
-import { Driver, DriverUpdate } from '@/types/driver'
+import { Driver, DriverUpdate, driverUpdateSchema } from '@/types/driver'
 import { DeliveryAction } from '@/types/delivery';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { faker } from '@faker-js/faker'
@@ -106,7 +106,7 @@ const driverSlice = createSlice({
     initialState,
     reducers: {
         updateDriver: (state, action: PayloadAction<DriverUpdate>) => {
-            const { driverId, latitude, longitude, status, eta } = action.payload
+            const { driverId, latitude, longitude, status, eta } = driverUpdateSchema.parse(action.payload)
             const driver = state.drivers[driverId]
             
             if (driver) {
