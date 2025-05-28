@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Providers } from "./providers";
+import { NavigationHeader } from "@/components/NavigationHeader";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,6 +26,7 @@ export default function RootLayout({
         className={`${inter.variable} antialiased bg-background text-foreground`}
       >
         <Providers>
+          <NavigationHeader />
           {children}
         </Providers>
       </body>
