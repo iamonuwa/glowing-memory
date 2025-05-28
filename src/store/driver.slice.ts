@@ -8,6 +8,19 @@ const BASE_LOCATION = {
     longitude: -52.74778004039589
 }
 
+// Load drivers from localStorage or generate new ones
+const loadDrivers = (): Record<string, Driver> => {
+    const storedDrivers = localStorage.getItem('drivers')
+    if (storedDrivers) {
+        try {
+            return JSON.parse(storedDrivers)
+        } catch (e) {
+            console.error('Error parsing stored drivers:', e)
+        }
+    }
+    return generateMockDrivers()
+}
+
 // Generate mock drivers
 const generateMockDrivers = (count: number = 20): Record<string, Driver> => {
     const drivers: Record<string, Driver> = {}
@@ -25,6 +38,8 @@ const generateMockDrivers = (count: number = 20): Record<string, Driver> => {
         }
     }
     
+    // Store the generated drivers
+    localStorage.setItem('drivers', JSON.stringify(drivers))
     return drivers
 }
 
@@ -38,7 +53,7 @@ interface DriversState {
 }
 
 const initialState: DriversState = {
-    drivers: generateMockDrivers(),
+    drivers: loadDrivers(),
     selectedDriverId: null,
     filter: "all",
     isLoading: false,
@@ -60,6 +75,9 @@ const driverSlice = createSlice({
                 driver.status = status
                 driver.eta = eta
                 driver.lastUpdated = Date.now()
+                
+                // Update localStorage
+                localStorage.setItem('drivers', JSON.stringify(state.drivers))
             }
         },
         selectedDriver: (state, action: PayloadAction<string | null>) => {
@@ -85,11 +103,15 @@ const driverSlice = createSlice({
                     case "resume":
                     case "reassign":
                         driver.status = "delivering";
+                        driver.eta = Date.now() + faker.number.int({ min: 5, max: 50 }) * 60 * 1000; // 5-50 minutes from now
                         break;
                     case "complete":
                         driver.status = "idle";
                         break;
                 }
+                
+                // Update localStorage
+                localStorage.setItem('drivers', JSON.stringify(state.drivers))
             }
         },
         confirmOptimisticUpdate: (state, action: PayloadAction<string>) => {
@@ -102,6 +124,9 @@ const driverSlice = createSlice({
         clearError: (state) => {
             state.error = null;
         },
+        resetDrivers: (state) => {
+            state.drivers = generateMockDrivers()
+        }
     }
 });
 
@@ -113,7 +138,8 @@ export const {
     addOptimisticUpdate,
     confirmOptimisticUpdate,
     rollbackOptimisticUpdate,
-    clearError
+    clearError,
+    resetDrivers
 } = driverSlice.actions;
 
 export default driverSlice.reducer;
