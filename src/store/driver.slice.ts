@@ -8,6 +8,42 @@ const BASE_LOCATION = {
     longitude: -52.74778004039589
 }
 
+// Generate a new position based on current position and status
+const generateNewPosition = (currentLat: number, currentLng: number, status: string, routeHistory: [number, number][]): { latitude: number; longitude: number } => {
+    // Only move if status is delivering
+    if (status !== 'delivering') {
+        return { latitude: currentLat, longitude: currentLng }
+    }
+
+    // If we have enough history, use it to determine direction
+    if (routeHistory.length >= 2) {
+        const lastPoint = routeHistory[routeHistory.length - 1]
+        const previousPoint = routeHistory[routeHistory.length - 2]
+        
+        // Calculate direction vector
+        const dx = lastPoint[0] - previousPoint[0]
+        const dy = lastPoint[1] - previousPoint[1]
+        
+        // Add some randomness to the direction
+        const angleVariation = faker.number.float({ min: -0.2, max: 0.2 }) // ±0.2 radians
+        const distance = faker.number.float({ min: 0.0001, max: 0.0003 }) // Smaller movement
+        
+        // Calculate new position with slight variation
+        const newLng = lastPoint[0] + dx * distance + Math.sin(angleVariation) * distance
+        const newLat = lastPoint[1] + dy * distance + Math.cos(angleVariation) * distance
+        
+        return { latitude: newLat, longitude: newLng }
+    }
+
+    // If not enough history, use random movement
+    const angle = faker.number.float({ min: 0, max: 2 * Math.PI })
+    const distance = faker.number.float({ min: 0.0001, max: 0.0003 }) // Smaller movement
+    const newLat = currentLat + distance * Math.cos(angle)
+    const newLng = currentLng + distance * Math.sin(angle)
+
+    return { latitude: newLat, longitude: newLng }
+}
+
 // Load drivers from localStorage or generate new ones
 const loadDrivers = (): Record<string, Driver> => {
     const storedDrivers = localStorage.getItem('drivers')
@@ -27,14 +63,18 @@ const generateMockDrivers = (count: number = 20): Record<string, Driver> => {
     
     for (let i = 0; i < count; i++) {
         const id = faker.string.uuid()
+        const baseLat = BASE_LOCATION.latitude + faker.number.float({ min: -0.05, max: 0.05 })
+        const baseLng = BASE_LOCATION.longitude + faker.number.float({ min: -0.05, max: 0.05 })
+        
         drivers[id] = {
             id,
             name: faker.person.fullName(),
-            latitude: BASE_LOCATION.latitude + faker.number.float({ min: -0.05, max: 0.05 }),
-            longitude: BASE_LOCATION.longitude + faker.number.float({ min: -0.05, max: 0.05 }),
+            latitude: baseLat,
+            longitude: baseLng,
             status: faker.helpers.arrayElement(['idle', 'delivering', 'paused'] as const),
             eta: Date.now() + faker.number.int({ min: 5, max: 50 }) * 60 * 1000, // 5-50 minutes from now
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
+            routeHistory: [[baseLng, baseLat]] // Initialize with current position
         }
     }
     
@@ -75,6 +115,32 @@ const driverSlice = createSlice({
                 driver.status = status
                 driver.eta = eta
                 driver.lastUpdated = Date.now()
+                
+                // Add to route history if position changed
+                if (driver.routeHistory[driver.routeHistory.length - 1][0] !== longitude || 
+                    driver.routeHistory[driver.routeHistory.length - 1][1] !== latitude) {
+                    driver.routeHistory.push([longitude, latitude])
+                }
+                
+                // Update localStorage
+                localStorage.setItem('drivers', JSON.stringify(state.drivers))
+            }
+        },
+        updateDriverPosition: (state, action: PayloadAction<string>) => {
+            const driver = state.drivers[action.payload]
+            if (driver && driver.status === 'delivering') {
+                const newPosition = generateNewPosition(
+                    driver.latitude, 
+                    driver.longitude, 
+                    driver.status,
+                    driver.routeHistory
+                )
+                driver.latitude = newPosition.latitude
+                driver.longitude = newPosition.longitude
+                driver.lastUpdated = Date.now()
+                
+                // Only update route history for delivering drivers
+                driver.routeHistory.push([newPosition.longitude, newPosition.latitude])
                 
                 // Update localStorage
                 localStorage.setItem('drivers', JSON.stringify(state.drivers))
@@ -132,6 +198,7 @@ const driverSlice = createSlice({
 
 export const {
     updateDriver,
+    updateDriverPosition,
     selectedDriver,
     setFilter,
     setLoading,

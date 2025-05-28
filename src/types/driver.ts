@@ -9,6 +9,7 @@ import { z } from "zod";
  * @property {('delivering'|'paused'|'idle')} status - Current status of the driver
  * @property {Date} eta - Estimated time of arrival
  * @property {Date} lastUpdated - Timestamp of the last update
+ * @property {number[]} routeHistory - Array of [longitude, latitude] coordinates
  */
 export const driverSchema = z.object({
     id: z.string(),
@@ -18,6 +19,7 @@ export const driverSchema = z.object({
     status: z.enum(["delivering", "paused", "idle"]),
     eta: z.number(),
     lastUpdated: z.number(),
+    routeHistory: z.array(z.tuple([z.number(), z.number()])),
 })
 
 /**

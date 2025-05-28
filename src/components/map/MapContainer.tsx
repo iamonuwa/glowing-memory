@@ -4,13 +4,13 @@ import { useAppSelector } from '@/store/hooks'
 import Map, { MapMarker } from '@/components/map'
 import { useMemo, useEffect, useRef, useCallback } from 'react'
 import { Route, addGeofence } from '@/lib/mapbox'
-import { v4 as uuidv4 } from 'uuid'
 import mapboxgl from 'mapbox-gl'
 import { RootState } from '@/store'
 import { DriverSheet } from './DriverSheet'
 import { useDispatch } from 'react-redux'
 import { selectedDriver } from '@/store/driver.slice'
 import { useWebSocket } from '@/context/WebSocketContext'
+import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates'
 
 const COLUMBUS_DRIVE: [number, number] = [47.54824330713512, -52.74778004039589]
 const GEOFENCE_RADIUS_KM = 1_000
@@ -22,10 +22,17 @@ interface Driver {
     eta: number
     latitude: number
     longitude: number
+    routeHistory: [number, number][]
 }
 
 export function MapContainer() {
+    // initializer hooks
+    // Connect to WebSocket
     useWebSocket()
+    // realtime updates
+    useRealtimeUpdates()
+
+    // redux state
     const drivers = useAppSelector((state: RootState) => state.drivers.drivers) as Record<string, Driver>
     const selectedDriverId = useAppSelector((state: RootState) => state.drivers.selectedDriverId)
     const geofenceRef = useRef<{ remove: () => void } | null>(null)
@@ -84,12 +91,10 @@ export function MapContainer() {
         const selectedDriver = drivers[selectedDriverId]
         if (!selectedDriver) return []
 
+        // Create route from history
         return [{
-            id: uuidv4(),
-            coordinates: [
-                [selectedDriver.longitude, selectedDriver.latitude] as [number, number],
-                [selectedDriver.longitude + 0.01, selectedDriver.latitude + 0.01] as [number, number]
-            ],
+            id: selectedDriverId,
+            coordinates: selectedDriver.routeHistory,
             color: '#ff4444'
         }] as Route[]
     }, [selectedDriverId, drivers])
