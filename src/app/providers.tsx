@@ -6,6 +6,7 @@ import { Provider } from "react-redux"
 import { store } from "@/store"
 import { initMockServer } from "@/lib/initializer";
 import { MockWebSocketServer } from "@/lib/mockWebSocketServer";
+import { WebSocketProvider } from "@/context/WebSocketContext"
 
 /**
  * Props for the Providers component
@@ -33,7 +34,9 @@ export function Providers({ children }: Props) {
 
     return (
         <Provider store={store}>
-            {children}
+            <WebSocketProvider>
+                {children}
+            </WebSocketProvider>
         </Provider>
     );
 }

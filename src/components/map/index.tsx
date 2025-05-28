@@ -1,10 +1,5 @@
-'use client'
-
-import { useWebSocket } from '@/hooks/useWebsocket'
 import { addMarker, drawRoute, initMap, Route } from '@/lib/mapbox'
-import { setDrivers } from '@/store/driver.slice'
-import React, { useEffect, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import React, { useEffect, useRef, useMemo, memo, useCallback } from 'react'
 
 export interface MapMarker {
   id: string
@@ -19,73 +14,134 @@ interface MapProps {
   markers?: MapMarker[]
   routes?: Route[]
   style?: React.CSSProperties
+  onLoad?: (map: mapboxgl.Map) => void
 }
 
-const Map: React.FC<MapProps> = ({ 
-  center = [-74.5, 40], 
-  zoom = 9, 
-  markers = [], 
+const Map: React.FC<MapProps> = memo(({
+  center = [47.54824330713512, -52.74778004039589] as [number, number],
+  zoom = 0,
+  markers = [],
   routes = [],
-  style 
+  style,
+  onLoad
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markerRefs = useRef<{ [id: string]: mapboxgl.Marker }>({})
   const routeRefs = useRef<{ [id: string]: { remove: () => void } }>({})
   const isUserInteraction = useRef(false)
-  const dispatch = useDispatch()
+  const isStyleLoaded = useRef(false)
 
-  // Connect to WebSocket (using mock implementation)
-  useWebSocket("ws://localhost:8080")
+  // Memoize markers and routes
+  const memoizedMarkers = useMemo(() => markers, [markers])
+  const memoizedRoutes = useMemo(() => routes, [routes])
 
+  // Initialize map only once
   useEffect(() => {
-    dispatch(setDrivers([]))
-  }, [dispatch])
+    if (!mapContainer.current || mapRef.current) return
 
-  useEffect(() => {
-    if (!mapContainer.current) return
-    if (mapRef.current) return // Prevent re-initialization
-
+    console.log('Initializing map')
     mapRef.current = initMap(mapContainer.current, center, zoom)
 
-    // Add event listeners to track user interactions
+    // Wait for style to load
+    mapRef.current.on('style.load', () => {
+      console.log('Map style loaded')
+      isStyleLoaded.current = true
+      onLoad?.(mapRef.current!)
+    })
+
     mapRef.current.on('moveend', () => {
       isUserInteraction.current = true
     })
 
     return () => {
-      mapRef.current?.remove()
-      mapRef.current = null
+      if (mapRef.current) {
+        mapRef.current.off('moveend', () => {
+          isUserInteraction.current = true
+        })
+        mapRef.current.off('style.load', () => {
+          console.log('Map style loaded')
+          isStyleLoaded.current = true
+          if (onLoad) {
+            onLoad(mapRef.current!)
+          }
+        })
+        isStyleLoaded.current = false
+      }
     }
-  }, [center, zoom])
+  }, [center, onLoad, zoom])
 
-  // Update markers
-  useEffect(() => {
-    if (!mapRef.current) return
-    // Remove old markers
-    Object.values(markerRefs.current).forEach((marker) => marker.remove())
+
+  // Function to update markers
+  const updateMarkers = useCallback(() => {
+    if (!mapRef.current || !isStyleLoaded.current) return
+
+    console.log('Updating markers:', memoizedMarkers)
+
+    // Remove all existing markers first
+    Object.values(markerRefs.current).forEach(marker => {
+      marker.remove()
+    })
     markerRefs.current = {}
+
+    // Remove any existing popups
+    const popupElements = document.querySelectorAll('.mapboxgl-popup')
+    popupElements.forEach(el => el.remove())
+
     // Add new markers
-    markers.forEach(({ id, lng, lat, popup }) => {
+    memoizedMarkers.forEach(({ id, lng, lat, popup }) => {
+      console.log('Creating marker:', { id, lng, lat })
       const marker = addMarker(mapRef.current!, [lng, lat], popup)
       markerRefs.current[id] = marker
     })
-  }, [markers])
+  }, [memoizedMarkers])
 
-  // Update routes
+  // Update markers efficiently
   useEffect(() => {
-    if (!mapRef.current) return
-    // Remove old routes
-    Object.values(routeRefs.current).forEach((route) => route.remove())
-    routeRefs.current = {}
-    // Add new routes
-    routes.forEach((route) => {
-      const routeRef = drawRoute(mapRef.current!, route)
-      routeRefs.current[route.id] = routeRef
-    })
-  }, [routes])
+    if (!mapRef.current) {
+      console.log('Map not initialized yet')
+      return
+    }
 
-  // Optionally update center/zoom only when props change from parent
+    // If style isn't loaded yet, wait for it
+    if (!isStyleLoaded.current) {
+      console.log('Waiting for style to load...')
+      const handleStyleLoad = () => {
+        console.log('Style loaded, now updating markers')
+        isStyleLoaded.current = true
+        updateMarkers()
+        mapRef.current?.off('style.load', handleStyleLoad)
+      }
+      mapRef.current.on('style.load', handleStyleLoad)
+      return
+    }
+
+    updateMarkers()
+  }, [memoizedMarkers, updateMarkers])
+
+
+  // Update routes efficiently
+  useEffect(() => {
+    if (!mapRef.current || !isStyleLoaded.current) return
+
+    memoizedRoutes.forEach(route => {
+      if (routeRefs.current[route.id]) {
+        routeRefs.current[route.id].remove()
+        routeRefs.current[route.id] = drawRoute(mapRef.current!, route)
+      } else {
+        routeRefs.current[route.id] = drawRoute(mapRef.current!, route)
+      }
+    })
+
+    Object.keys(routeRefs.current).forEach(id => {
+      if (!memoizedRoutes.find(route => route.id === id)) {
+        routeRefs.current[id].remove()
+        delete routeRefs.current[id]
+      }
+    })
+  }, [memoizedRoutes])
+
+  // Update center/zoom only when props change and not during user interaction
   useEffect(() => {
     if (!mapRef.current || isUserInteraction.current) return
     mapRef.current.setCenter(center)
@@ -99,6 +155,8 @@ const Map: React.FC<MapProps> = ({
       style={{ width: '100%', height: '100%', minHeight: 900, ...style }}
     />
   )
-}
+})
+
+Map.displayName = 'Map'
 
 export default Map 

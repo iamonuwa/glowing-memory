@@ -1,6 +1,32 @@
 import { Driver, DriverUpdate } from '@/types/driver'
 import { DeliveryAction } from '@/types/delivery';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { faker } from '@faker-js/faker'
+
+const BASE_LOCATION = {
+    latitude: 47.54870835400457,
+    longitude: -52.74778004039589
+}
+
+// Generate mock drivers
+const generateMockDrivers = (count: number = 20): Record<string, Driver> => {
+    const drivers: Record<string, Driver> = {}
+    
+    for (let i = 0; i < count; i++) {
+        const id = faker.string.uuid()
+        drivers[id] = {
+            id,
+            name: faker.person.fullName(),
+            latitude: BASE_LOCATION.latitude + faker.number.float({ min: -0.05, max: 0.05 }),
+            longitude: BASE_LOCATION.longitude + faker.number.float({ min: -0.05, max: 0.05 }),
+            status: faker.helpers.arrayElement(['idle', 'delivering', 'paused'] as const),
+            eta: Date.now() + faker.number.int({ min: 5, max: 50 }) * 60 * 1000, // 5-50 minutes from now
+            lastUpdated: Date.now()
+        }
+    }
+    
+    return drivers
+}
 
 interface DriversState {
     drivers: Record<string, Driver>
@@ -12,7 +38,7 @@ interface DriversState {
 }
 
 const initialState: DriversState = {
-    drivers: {},
+    drivers: generateMockDrivers(),
     selectedDriverId: null,
     filter: "all",
     isLoading: false,
@@ -24,22 +50,16 @@ const driverSlice = createSlice({
     name: "drivers",
     initialState,
     reducers: {
-        setDrivers: (state, action: PayloadAction<Driver[]>) => {
-            const driversMap: Record<string, Driver> = {};
-            action.payload.forEach((driver) => {
-                driversMap[driver.id] = driver;
-            });
-            state.drivers = driversMap;
-        },
         updateDriver: (state, action: PayloadAction<DriverUpdate>) => {
-            const { driverId, ...updates } = action.payload;
-            const driver = state.drivers[driverId];
+            const { driverId, latitude, longitude, status, eta } = action.payload
+            const driver = state.drivers[driverId]
+            
             if (driver) {
-                state.drivers[driverId] = {
-                    ...driver,
-                    ...updates,
-                    lastUpdated: new Date(),
-                };
+                driver.latitude = latitude
+                driver.longitude = longitude
+                driver.status = status
+                driver.eta = eta
+                driver.lastUpdated = Date.now()
             }
         },
         selectedDriver: (state, action: PayloadAction<string | null>) => {
@@ -63,6 +83,7 @@ const driverSlice = createSlice({
                         driver.status = "paused";
                         break;
                     case "resume":
+                    case "reassign":
                         driver.status = "delivering";
                         break;
                     case "complete":
@@ -85,7 +106,6 @@ const driverSlice = createSlice({
 });
 
 export const {
-    setDrivers,
     updateDriver,
     selectedDriver,
     setFilter,

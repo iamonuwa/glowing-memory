@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} antialiased bg-black`}
+        className={`${inter.variable} antialiased bg-background text-foreground`}
       >
         <Providers>
           {children}

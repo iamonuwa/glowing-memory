@@ -116,7 +116,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  .mapboxgl-popup-close-button {
+    display: none;
+  }
+
+  .mapboxgl-popup-content {
+    padding: 0;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
   }
 }

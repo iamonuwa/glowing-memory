@@ -16,8 +16,8 @@ export const driverSchema = z.object({
     latitude: z.number(),
     longitude: z.number(),
     status: z.enum(["delivering", "paused", "idle"]),
-    eta: z.date(),
-    lastUpdated: z.date(),
+    eta: z.number(),
+    lastUpdated: z.number(),
 })
 
 /**
@@ -33,11 +33,14 @@ export const driverUpdateSchema = z.object({
     latitude: z.number(),
     longitude: z.number(),
     status: z.enum(["delivering", "paused", "idle"]),
-    eta: z.date(),
+    eta: z.number(),
 })
 
-/** Type representing a driver with all their properties */
-export type Driver = z.infer<typeof driverSchema>;
+/** Type representing a driver in the system */
+export type Driver = z.infer<typeof driverSchema>
 
 /** Type representing an update to a driver's properties */
-export type DriverUpdate = z.infer<typeof driverUpdateSchema>;
+export type DriverUpdate = z.infer<typeof driverUpdateSchema>
+
+/** Type representing possible driver statuses */
+export type DriverStatus = Driver['status']

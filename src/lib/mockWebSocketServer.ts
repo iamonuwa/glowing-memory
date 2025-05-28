@@ -1,8 +1,7 @@
 "use client"
 
 import { faker } from "@faker-js/faker"
-import { v4 as uuidv4 } from "uuid"
-import type { DriverUpdate } from "@/types/driver"
+import type { Driver, DriverUpdate } from "@/types/driver"
 
 /**
  * Interface representing a mock driver's route point
@@ -13,13 +12,9 @@ interface RoutePoint {
 }
 
 /**
- * Interface representing a mock driver's data
+ * Interface representing a mock driver's route data
  */
-interface MockDriver {
-    id: string;
-    name: string;
-    baseLatitude: number;
-    baseLongitude: number;
+interface DriverRoute {
     route: RoutePoint[];
     routeIndex: number;
 }
@@ -31,31 +26,24 @@ interface MockDriver {
 export class MockWebSocketServer {
     /** Interval timer for sending updates */
     private interval: NodeJS.Timeout | null = null;
-    /** Collection of mock drivers with their routes */
-    private mockDrivers: MockDriver[] = [];
-
-    constructor() {
-        this.initializeMockDrivers();
-    }
+    /** Collection of driver routes */
+    private driverRoutes: Record<string, DriverRoute> = {};
 
     /**
-     * Initializes mock drivers with random data using Faker
+     * Initializes routes for existing drivers
+     * @param drivers - Current drivers from the store
      */
-    private initializeMockDrivers(): void {
-        const numDrivers = 4;
-        const baseLocation = { lat: 51.6214, lng: -3.9436 }; // Swansea Bus Station
+    initializeRoutes(drivers: Record<string, Driver>): void {
+        // Clear existing routes
+        this.driverRoutes = {};
 
-        for (let i = 0; i < numDrivers; i++) {
-            const driver: MockDriver = {
-                id: uuidv4(),
-                name: faker.person.fullName(),
-                baseLatitude: baseLocation.lat + faker.number.float({ min: -0.01, max: 0.01 }),
-                baseLongitude: baseLocation.lng + faker.number.float({ min: -0.01, max: 0.01 }),
-                route: this.generateRoute(baseLocation),
-                routeIndex: 0,
+        // Create routes for each driver
+        Object.values(drivers).forEach(driver => {
+            this.driverRoutes[driver.id] = {
+                route: this.generateRoute({ lat: driver.latitude, lng: driver.longitude }),
+                routeIndex: 0
             };
-            this.mockDrivers.push(driver);
-        }
+        });
     }
 
     /**
@@ -89,21 +77,25 @@ export class MockWebSocketServer {
      */
     private startMockUpdates(): void {
         this.interval = setInterval(() => {
-            this.mockDrivers.forEach((driver) => {
-                const update = this.generateDriverUpdate(driver);
-                this.broadcast(JSON.stringify(update));
+            Object.entries(this.driverRoutes).forEach(([driverId, routeData]) => {
+                const update = this.generateDriverUpdate(driverId, routeData);
+                this.broadcast(JSON.stringify({
+                    type: 'update',
+                    ...update
+                }));
             });
         }, 2000); // Update every 2 seconds
     }
 
     /**
      * Generates a driver update based on the current route position
-     * @param driver - The mock driver to generate an update for
+     * @param driverId - ID of the driver to update
+     * @param routeData - Current route data for the driver
      * @returns DriverUpdate object with current position and status
      */
-    private generateDriverUpdate(driver: MockDriver): DriverUpdate {
-        const currentPoint = driver.route[driver.routeIndex];
-        const nextPoint = driver.route[(driver.routeIndex + 1) % driver.route.length];
+    private generateDriverUpdate(driverId: string, routeData: DriverRoute): DriverUpdate {
+        const currentPoint = routeData.route[routeData.routeIndex];
+        const nextPoint = routeData.route[(routeData.routeIndex + 1) % routeData.route.length];
 
         // Interpolate between current and next point
         const progress = (Date.now() / 10000) % 1; // Complete route every 10 seconds
@@ -116,15 +108,15 @@ export class MockWebSocketServer {
 
         // Update route index occasionally
         if (faker.number.float({ min: 0, max: 1 }) < 0.1) {
-            driver.routeIndex = (driver.routeIndex + 1) % driver.route.length;
+            routeData.routeIndex = (routeData.routeIndex + 1) % routeData.route.length;
         }
 
         return {
-            driverId: driver.id,
+            driverId,
             latitude: randomLat,
             longitude: randomLng,
             status: this.getRandomStatus(),
-            eta: this.getRandomETA(),
+            eta: this.getRandomETA()
         };
     }
 
@@ -138,11 +130,11 @@ export class MockWebSocketServer {
 
     /**
      * Generates a random ETA between 5 and 50 minutes from now
-     * @returns Date object representing the ETA
+     * @returns Timestamp in milliseconds
      */
-    private getRandomETA(): Date {
+    private getRandomETA(): number {
         const minutes = faker.number.int({ min: 5, max: 50 });
-        return new Date(Date.now() + minutes * 60 * 1000);
+        return Date.now() + minutes * 60 * 1000;
     }
 
     /**
