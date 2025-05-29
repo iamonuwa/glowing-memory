@@ -28,7 +28,7 @@ export function NavigationHeader() {
                             <Clock className="h-8 w-8 text-blue-500" />
                         </div>
                         <h1 className="ml-3 text-xl font-semibold text-gray-900 dark:text-white">
-                            Driver Tracking
+                            Glowing Delivery
                         </h1>
                     </div>
 
