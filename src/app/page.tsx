@@ -3,7 +3,7 @@ import { DriverList } from "@/components/DriverList";
 
 export default function Page() {
   return (
-    <div className="h-screen w-screen grid grid-cols-4">
+    <div data-testid="page-container" className="h-screen w-screen grid grid-cols-4">
       <div className="col-span-1 h-full overflow-hidden">
         <DriverList />
       </div>

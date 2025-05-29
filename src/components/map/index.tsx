@@ -155,6 +155,7 @@ const Map: React.FC<MapProps> = memo(({
   return (
     <div
       ref={mapContainer}
+      data-testid="map-container"
       style={{ width: '100%', height: '100%', minHeight: 900, ...style }}
     />
   )
