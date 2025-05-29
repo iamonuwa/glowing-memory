@@ -72,7 +72,7 @@ const Map: React.FC<MapProps> = memo(({
         isStyleLoaded.current = false
       }
     }
-  }, [center, onLoad, zoom])
+  }, [center, onLoad, onReset, zoom])
 
 
   // Function to update markers

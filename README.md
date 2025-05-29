@@ -8,8 +8,8 @@ A real-time driver tracking application built with Next.js, Redux, and Mapbox GL
 - Interactive map with driver markers and routes
 - Driver status management (delivering, idle, paused)
 - Search and sort functionality for driver list
-- Dark mode support
 - Responsive design
+- Comprehensive test coverage
 
 ## Tech Stack
 
@@ -20,6 +20,7 @@ A real-time driver tracking application built with Next.js, Redux, and Mapbox GL
 - **UI Components**: Custom components with Radix UI primitives
 - **Icons**: Lucide Icons
 - **Type Safety**: TypeScript
+- **Testing**: Vitest + React Testing Library
 
 ## Getting Started
 
@@ -54,6 +55,13 @@ pnpm dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Testing
+
+Run the test suite:
+```bash
+pnpm test
+```
+
 ## Architecture Decisions
 
 ### State Management
@@ -71,6 +79,12 @@ pnpm dev
 - Real-time updates with minimal UI disruption
 - Responsive design with mobile considerations
 - Dark mode support for better accessibility
+
+### Testing Strategy
+- Unit tests for components and utilities
+- Integration tests for complex features
+- Mock implementations for external services
+- Test coverage for critical paths
 
 ### Performance Optimizations
 - Implemented memoization for expensive computations
@@ -91,6 +105,10 @@ pnpm dev
    - Used Mapbox GL instead of Google Maps for better customization
    - Trade-off: Requires API key management
 
+4. **Testing Approach**
+   - Used Vitest for faster test execution and better ESM support
+   - Trade-off: Less community support compared to Jest
+
 ## Known Limitations
 
 1. **Performance**
@@ -104,7 +122,7 @@ pnpm dev
 
 3. **Technical**
    - No error boundaries implemented
-   - Limited test coverage
+   - Limited test coverage for edge cases
    - No PWA support
 
 ## Future Improvements
@@ -122,6 +140,7 @@ pnpm dev
 
 3. **Technical**
    - Add comprehensive error handling
-   - Implement unit and integration tests
+   - Expand test coverage for edge cases
    - Add PWA support
    - Implement proper loading states
+   - Add end-to-end tests with Cypress
