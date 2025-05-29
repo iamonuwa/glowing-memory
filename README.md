@@ -34,8 +34,8 @@ A real-time driver tracking application built with Next.js, Redux, and Mapbox GL
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd demo
+git clone https://github.com/iamonuwa/glowing-memory.git
+cd glowing-memory
 ```
 
 2. Install dependencies:
